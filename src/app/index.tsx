@@ -1,98 +1,79 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
+import { router } from "expo-router";
+import { useEffect, useState } from "react";
+import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { listPosts, searchPosts } from "../lib/api";
+import { useUser } from "../contexts/user-context";
+import type { Post } from "../types/posts";
 
 export default function HomeScreen() {
+  const { user, loading, logout } = useUser();
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    if (!loading && !user) router.replace("/login");
+  }, [loading, user]);
+
+  useEffect(() => {
+    if (!user) return;
+    listPosts().then((p) => setPosts(p.filter((x) => x.status === "publicado")));
+  }, [user]);
+
+  async function handleSearch() {
+    const res = await searchPosts({ q: query });
+    setPosts(res.filter((x) => x.status === "publicado"));
+  }
+
+  if (loading || !user) return null;
+
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+    <View style={styles.container}>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
+        <Text style={{ fontWeight: "600" }}>{user.email}</Text>
+        <Pressable onPress={() => { logout(); router.replace("/login"); }}>
+          <Text style={{ color: "#208AEF" }}>Sair</Text>
+        </Pressable>
+      </View>
+      <View style={styles.searchRow}>
+        <TextInput
+          style={styles.input}
+          placeholder="Buscar posts..."
+          value={query}
+          onChangeText={setQuery}
+        />
+        <Pressable style={styles.button} onPress={handleSearch}>
+          <Text style={styles.buttonText}>Buscar</Text>
+        </Pressable>
+      </View>
+      <FlatList
+        data={posts}
+        keyExtractor={(item) => String(item.id)}
+        renderItem={({ item }) => (
+          <Pressable
+            style={styles.card}
+            onPress={() => router.push(`/posts/${item.id}`)}
+          >
+            <Text style={styles.title}>{item.title}</Text>
+            <Text style={styles.desc}>{item.content.slice(0, 100)}...</Text>
+            <Text style={styles.meta}>
+              Por {item.author} em {new Date(item.created_at).toLocaleDateString("pt-BR")}
+            </Text>
+          </Pressable>
+        )}
+        ListEmptyComponent={<Text>Nenhum post publicado.</Text>}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
-  },
+  container: { flex: 1, padding: 16 },
+  searchRow: { flexDirection: "row", gap: 8, marginBottom: 12 },
+  input: { flex: 1, borderWidth: 1, borderColor: "#ccc", borderRadius: 8, padding: 10 },
+  button: { backgroundColor: "#208AEF", paddingHorizontal: 16, borderRadius: 8, justifyContent: "center" },
+  buttonText: { color: "#fff" },
+  card: { borderWidth: 1, borderColor: "#ddd", borderRadius: 8, padding: 12, marginBottom: 10 },
+  title: { fontSize: 18, fontWeight: "600" },
+  desc: { color: "#555", marginTop: 4 },
+  meta: { color: "#888", fontSize: 12, marginTop: 6 },
 });
