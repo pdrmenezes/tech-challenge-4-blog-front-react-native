@@ -1,5 +1,5 @@
 {
-  "name": "blog-mobile-2",
+  "name": "blog-mobile",
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
