@@ -1,3 +1,4 @@
+import * as Constants from "expo-constants";
 import {
   createContext,
   useCallback,
@@ -5,12 +6,16 @@ import {
   useEffect,
   useState,
 } from "react";
+import { mockLogin, mockUserName } from "../lib/mock-api";
 import { MOCK_USERS } from "../lib/mockData";
-import { getAuth, setAuth, removeAuth } from "../lib/storage";
+import { getAuth, removeAuth, setAuth } from "../lib/storage";
+
+export type Role = "docente" | "discente" | "admin";
 
 export type UserAuth = {
   email: string;
-  role: "docente" | "discente";
+  name: string;
+  role: Role;
 } | null;
 
 type UserContextType = {
@@ -18,18 +23,47 @@ type UserContextType = {
   loading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
-  refreshUser: () => void;
+  refreshUser: () => Promise<void>;
 };
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
+
+function isMockDataEnabled(): boolean {
+  if (
+    typeof process !== "undefined" &&
+    process.env?.EXPO_PUBLIC_MOCK_DATA === "true"
+  ) {
+    return true;
+  }
+  try {
+    const expoConfig = (Constants as any).expoConfig;
+    return expoConfig?.extra?.MOCK_DATA === true;
+  } catch {
+    return false;
+  }
+}
+
+const USE_MOCK = isMockDataEnabled();
+
+function getRoleFromEmail(email: string): Role | null {
+  if (email.endsWith("@docente.com")) return "docente";
+  if (email.endsWith("@discente.com")) return "discente";
+  if (email.endsWith("@admin.com")) return "admin";
+  return null;
+}
 
 function getUserFromToken(token: string | null): UserAuth {
   if (!token) return null;
   try {
     const [email] = atob(token).split(":");
     if (!email) return null;
-    const role = email.endsWith("@docente.com") ? "docente" : "discente";
-    return { email, role };
+    const role = getRoleFromEmail(email);
+    if (!role) return null;
+    return {
+      email,
+      name: mockUserName(email),
+      role,
+    };
   } catch {
     return null;
   }
@@ -53,19 +87,28 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     refreshUser().finally(() => setLoading(false));
   }, [refreshUser]);
 
   const login = useCallback(async (email: string, password: string) => {
     if (!email.trim() || !password.trim()) return false;
-    if (!MOCK_USERS.has(email)) return false;
-    if (MOCK_USERS.get(email) !== password) return false;
+
+    let ok: boolean;
+    if (USE_MOCK) {
+      ok = await mockLogin(email, password);
+    } else {
+      ok = MOCK_USERS.has(email) && MOCK_USERS.get(email) === password;
+    }
+
+    if (!ok) return false;
+
     const token = btoa(`${email}:${password}`);
     await setAuth(JSON.stringify({ token }));
-    await refreshUser();
+    const role = getRoleFromEmail(email);
+    if (!role) return false;
+    setUser({ email, name: mockUserName(email), role });
     return true;
-  }, [refreshUser]);
+  }, []);
 
   const logout = useCallback(() => {
     removeAuth();
