@@ -1,9 +1,16 @@
-import { useLocalSearchParams, router } from "expo-router";
+import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput } from "react-native";
-import { getTeacher, updateTeacher } from "../../../lib/api";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { useUser } from "../../../contexts/user-context";
-import type { Teacher } from "../../../types/people";
+import { getTeacher, updateTeacher } from "../../../lib/api";
+import type { Teacher, UpdateTeacherInput } from "../../../types/people";
 
 export default function EditTeacherScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -11,7 +18,8 @@ export default function EditTeacherScreen() {
   const [item, setItem] = useState<Teacher | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [subject, setSubject] = useState("");
+  const [password, setPassword] = useState("");
+  const [handle, setHandle] = useState("");
 
   useEffect(() => {
     if (!id) return;
@@ -19,45 +27,112 @@ export default function EditTeacherScreen() {
       setItem(t);
       setName(t.name);
       setEmail(t.email);
-      setSubject(t.subject);
+      setHandle(t.handle ?? "");
     });
   }, [id]);
 
+  useEffect(() => {
+    if (!loading && (!user || user.role !== "admin")) {
+      router.replace("/login");
+    }
+  }, [loading, user]);
+
   if (loading) return null;
-  if (!user || user.role !== "docente") {
-    router.replace("/login");
+  if (!user || user.role !== "admin") {
     return null;
   }
 
+  if (!item) {
+    return (
+      <>
+        <Stack.Screen options={{ title: "Editar docente" }} />
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>Carregando...</Text>
+        </View>
+      </>
+    );
+  }
+
+  const currentId = item.id;
+
   async function handleSave() {
-    if (!item) return;
-    await updateTeacher(item.id, { name, email, subject });
+    const input: UpdateTeacherInput = {
+      name: name.trim(),
+      email: email.trim(),
+      handle: handle.trim() || null,
+    };
+    if (password.trim()) {
+      input.password = password.trim();
+    }
+    await updateTeacher(currentId, input);
     router.back();
   }
 
-  if (!item) return <Text style={{ padding: 16 }}>Carregando...</Text>;
-
   return (
-    <ScrollView style={styles.container}>
-      <Pressable onPress={() => router.back()}>
-        <Text style={styles.back}>← Voltar</Text>
-      </Pressable>
-      <Text style={styles.title}>Editar professor</Text>
-      <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Nome" />
-      <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="Email" autoCapitalize="none" />
-      <TextInput style={styles.input} value={subject} onChangeText={setSubject} placeholder="Disciplina" />
-      <Pressable style={styles.button} onPress={handleSave}>
-        <Text style={styles.buttonText}>Salvar</Text>
-      </Pressable>
-    </ScrollView>
+    <>
+      <Stack.Screen options={{ title: `Editar <${item?.name}>` }} />
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <TextInput
+          style={styles.input}
+          value={name}
+          onChangeText={setName}
+          placeholder="Nome"
+        />
+        <TextInput
+          style={styles.input}
+          value={email}
+          onChangeText={setEmail}
+          placeholder="Email"
+          autoCapitalize="none"
+        />
+        <TextInput
+          style={styles.input}
+          value={password}
+          onChangeText={setPassword}
+          placeholder="Senha"
+          secureTextEntry
+        />
+        <TextInput
+          style={styles.input}
+          value={handle}
+          onChangeText={setHandle}
+          placeholder="Tag (apelido)"
+          autoCapitalize="none"
+        />
+        <Pressable style={styles.button} onPress={handleSave}>
+          <Text style={styles.buttonText}>Salvar</Text>
+        </Pressable>
+      </ScrollView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  back: { color: "#208AEF", marginBottom: 12 },
-  title: { fontSize: 22, fontWeight: "700", marginBottom: 12 },
-  input: { borderWidth: 1, borderColor: "#ccc", borderRadius: 8, padding: 10, marginBottom: 10 },
-  button: { backgroundColor: "#208AEF", padding: 12, borderRadius: 8, alignItems: "center" },
+  scrollContent: { padding: 16 },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
+    backgroundColor: "#fff",
+  },
+  button: {
+    backgroundColor: "#208AEF",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 8,
+  },
   buttonText: { color: "#fff", fontWeight: "600" },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  emptyText: { color: "#888" },
 });
