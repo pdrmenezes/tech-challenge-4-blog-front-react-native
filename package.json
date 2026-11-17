@@ -37,10 +37,14 @@
   },
   "scripts": {
     "start": "expo start",
+    "start:mock": "EXPO_PUBLIC_MOCK_DATA=true expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
+    "android:mock": "EXPO_PUBLIC_MOCK_DATA=true expo start --android",
     "ios": "expo start --ios",
+    "ios:mock": "EXPO_PUBLIC_MOCK_DATA=true expo start --ios",
     "web": "expo start --web",
+    "web:mock": "EXPO_PUBLIC_MOCK_DATA=true expo start --web",
     "lint": "expo lint"
   },
   "private": true
