@@ -1,19 +1,49 @@
+export type UserRole = "docente" | "discente" | "admin";
+
 export type Teacher = {
   id: number;
   name: string;
   email: string;
-  subject: string;
+  role: UserRole;
+  handle: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export type Student = {
   id: number;
   name: string;
   email: string;
-  course: string;
+  role: UserRole;
+  handle: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
-export type CreateTeacherInput = Omit<Teacher, "id">;
-export type UpdateTeacherInput = Partial<Omit<Teacher, "id">>;
+export type CreateTeacherInput = {
+  name: string;
+  email: string;
+  password: string;
+  handle?: string | null;
+};
 
-export type CreateStudentInput = Omit<Student, "id">;
-export type UpdateStudentInput = Partial<Omit<Student, "id">>;
+export type UpdateTeacherInput = Partial<{
+  name: string;
+  email: string;
+  password: string;
+  handle: string | null;
+}>;
+
+export type CreateStudentInput = {
+  name: string;
+  email: string;
+  password: string;
+  handle: string;
+};
+
+export type UpdateStudentInput = Partial<{
+  name: string;
+  email: string;
+  password: string;
+  handle: string | null;
+}>;
