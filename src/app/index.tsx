@@ -110,7 +110,7 @@ export default function HomeScreen() {
 
       <FlatList
         numColumns={NUM_COLUMNS}
-        contentContainerStyle={styles.grid}
+        contentContainerStyle={styles.list}
         columnWrapperStyle={NUM_COLUMNS > 1 ? { gap: GAP } : undefined}
         data={posts}
         keyExtractor={(item) => String(item.id)}
@@ -150,7 +150,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 16, backgroundColor: "#fafafa" },
+  content: { flex: 1, padding: 16 },
   actionsRow: { flexDirection: "row", gap: 8, marginBottom: 12 },
   actionBtn: {
     backgroundColor: "#208AEF",
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   buttonText: { color: "#fff" },
-  grid: { gap: GAP },
+  list: { paddingBottom: 16, gap: GAP },
   card: {
     borderWidth: 1,
     borderColor: "#ddd",
