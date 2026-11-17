@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useUser } from "../contexts/user-context";
 
@@ -9,10 +9,11 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  if (!loading && user) {
-    if (user.role === "docente") router.replace("/admin/posts");
-    else router.replace("/");
-  }
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace("/");
+    }
+  }, [loading, user]);
 
   async function handleSubmit() {
     setError("");
@@ -21,13 +22,14 @@ export default function LoginScreen() {
       setError("Email ou senha inválidos.");
       return;
     }
-    const role = email.endsWith("@docente.com") ? "docente" : "discente";
-    router.replace(role === "docente" ? "/admin/posts" : "/");
+    router.replace("/");
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
+    <View style={styles.form}>
+      <Text style={styles.title}>Boas vindas de volta</Text>
+      <Text style={styles.subtitle}>Faça login para continuar</Text>
+
       <TextInput
         style={styles.input}
         placeholder="Email"
@@ -47,19 +49,47 @@ export default function LoginScreen() {
         <Text style={styles.buttonText}>Entrar</Text>
       </Pressable>
       <Text style={styles.hint}>
-        Contas: ana@docente.com/prof1, joao@docente.com/prof2,
-        maria@discente.com/discente1, pedro@discente.com/discente2
+        Contas para teste:
+        <Text style={styles.accounts}>ana@docente.com / prof1</Text>
+        <Text style={styles.accounts}>maria@discente.com / discente1</Text>
+        <Text style={styles.accounts}>admin@admin.com / admin123</Text>
       </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, justifyContent: "center", gap: 12 },
-  title: { fontSize: 24, fontWeight: "700", marginBottom: 12 },
-  input: { borderWidth: 1, borderColor: "#ccc", borderRadius: 8, padding: 12 },
-  button: { backgroundColor: "#208AEF", padding: 12, borderRadius: 8, alignItems: "center" },
-  buttonText: { color: "#fff", fontWeight: "600" },
-  error: { color: "red" },
-  hint: { fontSize: 12, color: "#666", marginTop: 8 },
+  form: { flex: 1, justifyContent: "center", padding: 24 },
+  title: { fontSize: 26, fontWeight: "700", color: "#111", marginBottom: 6 },
+  subtitle: { fontSize: 15, color: "#666", marginBottom: 24 },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+    backgroundColor: "#fff",
+    fontSize: 15,
+  },
+  button: {
+    backgroundColor: "#208AEF",
+    padding: 14,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  buttonText: { color: "#fff", fontWeight: "600", fontSize: 16 },
+  error: { color: "#d32f2f", marginBottom: 12, fontSize: 13 },
+  hint: {
+    display: "flex",
+    flexDirection: "column",
+    color: "#666",
+    fontSize: 12,
+    marginTop: 16,
+  },
+  accounts: {
+    marginLeft: 8,
+    color: "#208AEF",
+    fontSize: 12,
+  },
 });
