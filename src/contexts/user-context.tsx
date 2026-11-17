@@ -87,7 +87,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    refreshUser().finally(() => setLoading(false));
+    const init = async () => {
+      await refreshUser();
+      setLoading(false);
+    };
+    init();
   }, [refreshUser]);
 
   const login = useCallback(async (email: string, password: string) => {
